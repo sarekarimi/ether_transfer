@@ -1,7 +1,7 @@
 import random
 import json
 from web3 import Web3
-
+# import json
 
 MAIN_URL = "https://mainnet.infura.io/v3/bb055071bba745488eda95512a6d0035"
 URL = 'https://8cf41633363c49a584fbfb0b556a5927.ropsten.rpc.rivet.cloud/'
@@ -45,23 +45,24 @@ def balance(_addr: str) -> float:
     return float(w3.eth.get_balance(addr_) / 10**18)
 
 
-def transfer(_to_addr: str, _value: float, private_key: str, public_key: str , n = 0 ):
+
+def transfer(_to_addr: str, _value: float, private_key: str, public_key: str ,_nounce:int ):
     to_addr_ = _checking(_to_addr)
     public_key = _checking(public_key)
+    
     if to_addr_ and public_key:
         try:
             if balance(public_key) < _value:
                 print("پول ت کمه ، نمیتونی کمک کنی ")
                 return False
             p = w3.eth.gas_price
-            if n == 0:
-                n = w3.eth.get_transaction_count(public_key) 
+            
             trancation = {
                 'from': public_key,
                 'to': to_addr_,
                 "gas": "0x200000",
                 "gasPrice": p,
-                "nonce": n,
+                "nonce": _nounce,
                 "value": int(_value * 10**18),
             }
             raw_trx = w3.eth.account.privateKeyToAccount(
@@ -73,6 +74,7 @@ def transfer(_to_addr: str, _value: float, private_key: str, public_key: str , n
             print("یک اتفاقی افتاده که من نمیدونم ....")
             return 0
 
+    
 
 ####################### My Code #######################
 
@@ -83,9 +85,10 @@ with open('wallets.json') as wallets_data:
     list_account_addr = {}
     wallet_length = len(wallet)
 
+
 # read 20 random account address and calculate balance
 # create dictionary for transfer loop  
-    for i in range(5):
+    for i in range(10):
         index = random.randint(1,wallet_length)
         each_balance = balance(wallet[index])
         sum = sum + each_balance
@@ -93,18 +96,23 @@ with open('wallets.json') as wallets_data:
 
     average = sum/wallet_length
     below_average = average/10
-    print("below_average : ",below_average)
-   
-# transfer ether to accounts 
+
+
+# transfer ether to accounts and create transaction file
+with open("transferlistfile.txt", "a") as transfer_list:
+    _public_key = Web3.toChecksumAddress("0xAf77fB90baCE88edad8be674232C4a072BdC29A3")
+    _nounce = w3.eth.get_transaction_count(_public_key )
+    count_below_average = 0
     for key,value in list_account_addr.items():
         if value < below_average:
-            transfer(key,
+            transfer_list.write(str(transfer(key,
                 0.005,
                 "47d88b93b485140ee774fde779906182c2f419528793411e60029d09c60f371d",
-                "0x036e42A6554089685809c893758194D0b00c6726")
+                "0x036e42A6554089685809c893758194D0b00c6726",
+                _nounce )))
+            transfer_list.write("\n")   
+            _nounce += 1
+            count_below_average += 1
+    print ("count_below_average : ", count_below_average)
     print ("Done")
-            
-       
-
-
-        
+ 
